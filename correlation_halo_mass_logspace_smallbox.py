@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+from scipy import log
 data = vr.load('/data3/FLAMINGO/REF/L0200N0360/VR/halos_0008.properties.0')
 
 halo_masses = data.masses.mass_200crit
@@ -24,6 +26,9 @@ Boxsize2 = 20
 def distance(v1,v2,boxsize): 
 	distance =(((v1[0] - v2[0] + boxsize / 2) % boxsize - boxsize / 2) ** 2 + ((v1[1] - v2[1] + boxsize / 2) % boxsize - boxsize / 2) ** 2 + ((v1[2] - v2[2] + boxsize / 2) % boxsize - boxsize / 2) ** 2) ** 0.5
 	return distance
+
+def fund(x,a,b):
+	return a*log(x) + b
 
 position1 = []
 position2 = []
@@ -104,10 +109,10 @@ for i in range(c):
 '''
 
 
-histdd1, bin_edge = np.histogram(matrixdd1, bins=np.arange(1,20,0.5))
-histdd2, bin_edge = np.histogram(matrixdd2, bins=np.arange(1,20,0.5))
-histdd3, bin_edge = np.histogram(matrixdd3, bins=np.arange(1,20,0.5))
-histrr, bin_edge = np.histogram(matrixrr, bins=np.arange(1,20,0.5))
+histdd1, bin_edge = np.histogram(matrixdd1, bins=np.arange(1,10,0.2))
+histdd2, bin_edge = np.histogram(matrixdd2, bins=np.arange(1,10,0.2))
+histdd3, bin_edge = np.histogram(matrixdd3, bins=np.arange(1,10,0.2))
+histrr, bin_edge = np.histogram(matrixrr, bins=np.arange(1,10,0.2))
 #histdr1, bin_edge = np.histogram(matrixdr1, bins=np.arange(1,30,0.5))
 #histdr2, bin_edge = np.histogram(matrixdr2, bins=np.arange(1,30,0.5))
 #histdr3, bin_edge = np.histogram(matrixdr3, bins=np.arange(1,30,0.5))
@@ -130,17 +135,28 @@ print(Y1)
 print(Y2)
 print(Y3)
 
-Y4 = (X/5) ** (-1.7)
+# Y4 = (X/5) ** (-1.7)
+# fit curve
+popt1, pcov1 = curve_fit(fund,X,log(Y1))
+popt2, pcov1 = curve_fit(fund,X,log(Y2))
+popt3, pcov1 = curve_fit(fund,X,log(Y3))
+
+Y1f = [math.exp(fund(i, popt1[0], popt1[1])) for i in X]
+Y2f = [math.exp(fund(i, popt2[0], popt2[1])) for i in X]
+Y3f = [math.exp(fund(i, popt3[0], popt3[1])) for i in X]
 
 plt.scatter(X,Y1, label='0.9*10^11<M_halo<1.1*10^11')
 plt.scatter(X, Y2, label='0.9*10^12<M_halo<1.1*10^12')
 plt.scatter(X, Y3, label='0.6*10^13<M_halo<1.4*10^13')
 plt.plot(X,Y1,X,Y2,X,Y3)
-plt.plot(X,Y4, label='good fit $\zeta$=(r/5)^(-1.7)')
+plt.plot(X,Y1f, label='fit curve1 log($\zeta$)=%5.3flog(r) + %5.3f'%tuple(popt1))
+plt.plot(X,Y2f, label='fit curve2 log($\zeta$)=%5.3flog(r) + %5.3f'%tuple(popt2))
+plt.plot(X,Y3f, label='fit curve3 log($\zeta$)=%5.3flog(r) + %5.3f'%tuple(popt3))
+# plt.plot(X,Y4, label='good fit $\zeta$=(r/5)^(-1.7)')
 plt.xscale('log')
 plt.yscale('log')
 plt.ylim(1e-2,1e2)
 plt.xlabel('log(r)')
 plt.ylabel(r'log($\zeta$)')
 plt.legend()
-plt.savefig('correlation_halo_Mass3_N_1000_1000_periodic_arrange_smallbox_1.png')
+plt.savefig('correlation_halo_Mass3_N_1000_1000_periodic_arrange_smallbox_fitcurve.png')
